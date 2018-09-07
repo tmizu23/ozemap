@@ -129,36 +129,80 @@ var photo360Layer = new ol.layer.Vector({
 });
 photo360Layer.set("name","photo360")
 
+var Drone = function(flightlog,flightvideo,name){
+    this.flightlog = flightlog;
+    this.flightvideo = flightvideo;
 
-function drone("data/drone.json","data/drone.mp4"){
+    /*ドローンマーカー*/
+    this.geoMarker = new ol.Feature();
+    this.markerLayer = new ol.layer.Vector({
+            source: new ol.source.Vector({
+              features: [this.geoMarker]
+            })
+    });
+    this.markerLayer.set("name","flightmarker");
+    this.markerLayer.set("drone",this);
 
+    /*ドローン飛行軌跡*/
+    this.vectorSource = new ol.source.Vector();
+    this.droneLayer = new ol.layer.Vector({
+        source: this.vectorSource,
+        style: function(feature, resolution) {
+          return style[feature.getGeometry().getType()];
+        }
+    });
+    this.droneLayer.set("name","flightlog");
+    this.droneLayer.set("drone",this);
+
+    this.pjson =[];
 }
-/*ドローンマーカー*/
-var geoMarker = new ol.Feature();
-var markerLayer = new ol.layer.Vector({
-        source: new ol.source.Vector({
-          features: [geoMarker]
-        })
-});
-markerLayer.set("name","flightmarker")
 
-/*ドローン飛行軌跡*/
-var vectorSource = new ol.source.Vector();
-var droneLayer = new ol.layer.Vector({
-    source: vectorSource,
-    style: function(feature, resolution) {
-      return style[feature.getGeometry().getType()];
+Drone.prototype.setDrone = function(data) {
+    this.pjson = data;
+    var point_locs = [];
+    for (var i = 0, e = data.length; i < e; ++i) {
+        point_locs[i] = [data[i].lon, data[i].lat];
     }
-});
-droneLayer.set("name","flightlog")
+    var line_geojson = {
+        type: "Feature",
+        geometry: {type: "LineString", coordinates: point_locs},
+    };
+    var feature = (new ol.format.GeoJSON()).readFeature(line_geojson, {
+      featureProjection: 'EPSG:3857'
+    });
+    this.vectorSource.addFeature(feature);
+    setGeoMarkerPosition.now = data[0];
+    setGeoMarkerPosition(data[0],this.geoMarker);
+};
+Drone.prototype.loaddata = function(){
+  var result;
+  $.ajax({
+		  url: this.flightlog,
+		  async: false,
+		  dataType: 'json'
+		}).done(function(data) {
+             result=data;
+        }).fail(function() {
+            console.log("error");
+        });
+  return result;
+};
+
+var drone1 = new Drone("data/drone1.json","data/drone1.mp4");
+drone1.setDrone(drone1.loaddata());
+
+var drone2 = new Drone("data/drone2.json","data/drone2.mp4");
+drone2.setDrone(drone2.loaddata());
+
+var activedrone;
+var pjson;
 
 /*ドローンのレイヤーをグループ化（レイヤスイッチャ用）*/
 var droneGroup = new ol.layer.Group({
     title: 'ドローンビデオ',
     combine: true,
-    layers: [droneLayer,markerLayer]
+    layers: [drone1.droneLayer,drone1.markerLayer,drone2.droneLayer,drone2.markerLayer]
 });
-
 
 /*レイヤグループ作成（レイヤスイッチャー用）*/
 var contentsGroup = new ol.layer.Group({
@@ -262,7 +306,9 @@ var displayFeatureInfo = function(pixel) {
 var displayFeaturePhoto = function(pixel,coordinate) {
   var features = [];
   map.forEachFeatureAtPixel(pixel, function(feature, layer) {
-    features.push(feature);
+    if(layer.get("name") == "photo360"){
+        features.push(feature);
+    }
   });
   if (features.length > 0) {
     var fname = "";
@@ -286,15 +332,20 @@ map.on('click', function(evt) {
     map.forEachFeatureAtPixel(evt.pixel,
     function (feature, layer) {
         var coordinate = map.getEventCoordinate(evt.originalEvent);
-        if(layer.get("name") == "flightlog"||layer.get("name") == "flightmarker"){
+        if(layer.get("drone")){
+            if(activedrone != layer.get("drone")){
+                activedrone = layer.get("drone");
+                pjson = activedrone.pjson;
+                video.html('<source src="' + activedrone.flightvideo +'" type="video/mp4">' );
+                video.get(0).load();
+            }
             if(video.is(':hidden')){
-                video.html('<source src="data/drone.mp4" type="video/mp4">' );
                 video.show();
             }
-        }
-        if(layer.get("name") == "flightlog"){
-            coordinate = ol.proj.transform(coordinate, "EPSG:3857", "EPSG:4326");
-            video.get(0).currentTime = nearest_point(coordinate[0], coordinate[1]).sec;
+            if(layer.get("name") == "flightlog"){
+                coordinate = ol.proj.transform(coordinate, "EPSG:3857", "EPSG:4326");
+                video.get(0).currentTime = nearest_point(coordinate[0], coordinate[1]).sec;
+            }
         }else if(layer.get("name") == "photo360"){
             displayFeaturePhoto(evt.pixel,coordinate);
         }
@@ -304,71 +355,24 @@ map.on('click', function(evt) {
 
 // listeners on the video used to place marker
 video.on('seeked', function () {
-	setGeoMarkerPosition(point_at_time(this.currentTime));
+	setGeoMarkerPosition(point_at_time(this.currentTime),activedrone.geoMarker);
 });
 
 video.on('timeupdate', function() {
 	var it = point_at_time(this.currentTime);
 	if (it !== setGeoMarkerPosition.now) {
-		setGeoMarkerPosition(it);
+		setGeoMarkerPosition(it,activedrone.geoMarker);
 	}
 });
 
 video.on('ended', function() {
-	setGeoMarkerPosition(pjson[pjson.length-1]);
+	setGeoMarkerPosition(pjson[pjson.length-1],activedrone.geoMarker);
 })
 
 video.on('click', function() {
     video.get(0).pause();
 	video.hide();
 })
-
-function setGeoMarkerPosition(data){
-		//setGeoMarkerPosition.now = data
-		geoMarker.setGeometry(new ol.geom.Point(ol.proj.transform([data.lon, data.lat], "EPSG:4326", "EPSG:3857")));
-        var rot = data.yaw * Math.PI/180
-        var iconStyle = new ol.style.Style({
-		    image: new ol.style.Icon({
-		        anchor: [0.5, 0.65],
-		        anchorXUnits: 'fraction',
-		        anchorYUnits: 'fraction',
-				rotation: rot,
-		        src: 'img/icon.png'
-		    })
-		});
-        geoMarker.setStyle(iconStyle);
-        setGeoMarkerPosition.now = data;
-}
-
-var pjson =[];
-// when jQuery has loaded the data, we can create features for each photo
-function successHandler(data) {
-    pjson = data
-    var point_locs = [];
-    for (var i = 0, e = data.length; i < e; ++i) {
-        point_locs[i] = [data[i].lon, data[i].lat];
-    }
-    var line_geojson = {
-        type: "Feature",
-        geometry: {type: "LineString", coordinates: point_locs},
-    };
-    var feature = (new ol.format.GeoJSON()).readFeature(line_geojson, {
-      featureProjection: 'EPSG:3857'
-    });
-    vectorSource.addFeature(feature);
-    setGeoMarkerPosition.now = pjson[0];
-    setGeoMarkerPosition(pjson[0]);
-}
-
-$.ajax({
-  url: 'data/drone.json',
-  dataType: 'json',
-  success: successHandler,
-  error:function(){
-    console.log('取得失敗');
-  }
-});
-
 
 function point_at_time(timeindex_sec) {
 	var it = pjson[0];
@@ -403,4 +407,21 @@ function nearest_point(lon, lat) {
 		}
 	}
 	return it;
+}
+
+function setGeoMarkerPosition(data,marker){
+        //setGeoMarkerPosition.now = data
+        marker.setGeometry(new ol.geom.Point(ol.proj.transform([data.lon, data.lat], "EPSG:4326", "EPSG:3857")));
+        var rot = data.yaw * Math.PI/180
+        var iconStyle = new ol.style.Style({
+            image: new ol.style.Icon({
+                anchor: [0.5, 0.65],
+                anchorXUnits: 'fraction',
+                anchorYUnits: 'fraction',
+                rotation: rot,
+                src: 'img/icon.png'
+            })
+        });
+        marker.setStyle(iconStyle);
+        setGeoMarkerPosition.now = data;
 }
