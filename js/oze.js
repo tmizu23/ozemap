@@ -336,8 +336,9 @@ map.on('click', function(evt) {
             if(activedrone != layer.get("drone")){
                 activedrone = layer.get("drone");
                 pjson = activedrone.pjson;
-                video.html('<source src="' + activedrone.flightvideo +'" type="video/mp4">' );
+                video.html('<source src="' + activedrone.flightvideo +'" type="video/mp4" autoPlay>' );
                 video.get(0).load();
+                video.get(0).play();
             }
             if(video.is(':hidden')){
                 video.show();
