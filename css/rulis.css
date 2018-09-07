@@ -1,0 +1,44 @@
+﻿
+/*ツールチップ*/
+#tooltip {
+    display: block;
+    position: absolute;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 3px;
+    -moz-border-radius: 3px;
+    -webkit-border-radius: 3px;
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px;
+    -moz-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px;
+    -webkit-box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px;
+    font: 12px "Helvetica Neue", Arial, Helvetica, sans-serif;
+    padding: 4px 7px 7px 7px;
+    -webkit-user-select: auto;
+    left: 50px;
+    top: 10px;
+    max-width: 300px;
+    opacity: 0;
+    -webkit-transition: opacity 150ms;
+    -moz-transition: opacity 150ms;
+}
+/*透過スライダー*/
+#sliderbox {
+    display: block;
+    position: absolute;
+    padding: 1px;
+    background-color: #aaaaaa;
+    filter: alpha(opacity=50);
+    -moz-opacity: 0.5;
+    opacity: 0.5;
+    left: 10px;
+    bottom: 10px;
+    max-width: 300px;
+    z-index: 1000;
+}
+#slider_cl3{
+    width:150px;
+}
+#slider_cl6{
+    width:150px;
+}
+
