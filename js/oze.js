@@ -204,6 +204,34 @@ var droneGroup = new ol.layer.Group({
     layers: [drone1.droneLayer,drone1.markerLayer,drone2.droneLayer,drone2.markerLayer]
 });
 
+/*potressアイコン*/
+var iconFeature = new ol.Feature({
+  geometry: new ol.geom.Point(ol.proj.transform([139.23550,36.931571], "EPSG:4326", "EPSG:3857")),
+  name: 'areaD'
+});
+
+var iconStyle = new ol.style.Style({
+  image: new ol.style.Icon(/** @type {olx.style.IconOptions} */ ({
+    anchor: [0.5, 46],
+    anchorXUnits: 'fraction',
+    anchorYUnits: 'pixels',
+    opacity: 0.75,
+    src: 'img/blue.png'
+  }))
+});
+
+iconFeature.setStyle(iconStyle);
+
+var potreeSource = new ol.source.Vector({
+  features: [iconFeature]
+});
+
+var potreeLayer = new ol.layer.Vector({
+  title: '3D',
+  source: potreeSource
+});
+potreeLayer.set("name","3D")
+
 /*レイヤグループ作成（レイヤスイッチャー用）*/
 var contentsGroup = new ol.layer.Group({
     title: 'Contents',
@@ -229,7 +257,7 @@ overlayGroup.getLayers().push(blockLayer2);
 
 contentsGroup.getLayers().push(photo360Layer);
 contentsGroup.getLayers().push(droneGroup);
-
+contentsGroup.getLayers().push(potreeLayer);
 
 
 /*地図初期設定*/
@@ -349,6 +377,8 @@ map.on('click', function(evt) {
             }
         }else if(layer.get("name") == "photo360"){
             displayFeaturePhoto(evt.pixel,coordinate);
+        }else if(layer.get("name") == "3D"){
+            window.open('http://map.ecoris.info/oze/areaD_3d/areaD.html', '_blank');
         }
     });
 });
