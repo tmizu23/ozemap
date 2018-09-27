@@ -102,7 +102,7 @@ var blockLayer = new ol.layer.Tile({
     minResolution: MinResolution
 })
 var blockLayer2 = new ol.layer.Tile({
-    title: "詳細2018.7<div><input id='slider_block2' type='range' value='100' oninput='changeOpacity(\"block2\")' onchange='changeOpacity(\"block2\")'/></div>",
+    title: "詳細2018.7-8<div><input id='slider_block2' type='range' value='100' oninput='changeOpacity(\"block2\")' onchange='changeOpacity(\"block2\")'/></div>",
     source: new ol.source.XYZ({
         attributions: [new ol.Attribution({
             html: "<a href='http://www.ecoris.co.jp' target='_blank'>エコリス</a>"
