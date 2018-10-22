@@ -116,24 +116,14 @@ var blockLayer2 = new ol.layer.Tile({
 
 /*コンテンツ*/
 
-/*360°写真*/
-var photo360Layer = new ol.layer.Vector({
-  title: "360°写真",
-  source: new ol.source.Vector({
-    url: 'data/oze.gpx',
-    format: new ol.format.GPX()
-  }),
-  style: function(feature, resolution) {
-    return style[feature.getGeometry().getType()];
-  }
-});
-photo360Layer.set("name","photo360")
-
+var activedrone;
+var pjson;
+/*
 var Drone = function(flightlog,flightvideo,name){
     this.flightlog = flightlog;
     this.flightvideo = flightvideo;
 
-    /*ドローンマーカー*/
+    //ドローンマーカー
     this.geoMarker = new ol.Feature();
     this.markerLayer = new ol.layer.Vector({
             source: new ol.source.Vector({
@@ -143,7 +133,7 @@ var Drone = function(flightlog,flightvideo,name){
     this.markerLayer.set("name","flightmarker");
     this.markerLayer.set("drone",this);
 
-    /*ドローン飛行軌跡*/
+    //ドローン飛行軌跡
     this.vectorSource = new ol.source.Vector();
     this.droneLayer = new ol.layer.Vector({
         source: this.vectorSource,
@@ -194,15 +184,27 @@ drone1.setDrone(drone1.loaddata());
 var drone2 = new Drone("data/drone2.json","data/drone2.mp4");
 drone2.setDrone(drone2.loaddata());
 
-var activedrone;
-var pjson;
 
-/*ドローンのレイヤーをグループ化（レイヤスイッチャ用）*/
+//ドローンのレイヤーをグループ化（レイヤスイッチャ用）
 var droneGroup = new ol.layer.Group({
     title: 'ドローンビデオ',
     combine: true,
     layers: [drone1.droneLayer,drone1.markerLayer,drone2.droneLayer,drone2.markerLayer]
 });
+*/
+
+/*360°写真*/
+var photo360Layer = new ol.layer.Vector({
+  title: "360°写真",
+  source: new ol.source.Vector({
+    url: 'data/oze.geojson',
+    format: new ol.format.GeoJSON()
+  }),
+  style: function(feature, resolution) {
+    return style[feature.getGeometry().getType()];
+  }
+});
+photo360Layer.set("name","photo360")
 
 /*potressアイコン*/
 var iconFeature = new ol.Feature({
@@ -256,7 +258,7 @@ overlayGroup.getLayers().push(blockLayer);
 overlayGroup.getLayers().push(blockLayer2);
 
 contentsGroup.getLayers().push(photo360Layer);
-contentsGroup.getLayers().push(droneGroup);
+//contentsGroup.getLayers().push(droneGroup);
 contentsGroup.getLayers().push(potreeLayer);
 
 
@@ -331,21 +333,11 @@ var displayFeatureInfo = function(pixel) {
   }
 };
 
-var displayFeaturePhoto = function(pixel,coordinate) {
-  var features = [];
-  map.forEachFeatureAtPixel(pixel, function(feature, layer) {
-    if(layer.get("name") == "photo360"){
-        features.push(feature);
-    }
-  });
-  if (features.length > 0) {
-    var fname = "";
-    var ftime = "";
-    fname = features[0].get('name');
-    ftime = features[0].get('desc');
-    html = ftime + "<br><iframe width='300' height='200' allowfullscreen style='border-style:none;' src='https://cdn.pannellum.org/2.4/pannellum.htm?panorama=https://map.ecoris.info/photodata/"+ fname + ".jpg" + "&autoLoad=true'></iframe>"
+var displayFeaturePhoto = function(coordinate,fname,ftime,ftime1,ftime2,season) {
+    html = ftime + " [<a href='javascript:displayFeaturePhoto("+'['+coordinate+'],"'+fname+'","'+ftime1+'","'+ftime1+'","'+ftime2+'",'+"201808)'" + ">夏</a>-";
+    html = html + "<a href='javascript:displayFeaturePhoto("+'['+coordinate+'],"'+fname+'","'+ftime2+'","'+ftime1+'","'+ftime2+'",'+"201810)'" + ">秋</a>]<br>";
+    html = html + "<iframe width='300' height='200' allowfullscreen style='border-style:none;' src='build/pannellum.htm?panorama=https://map.ecoris.info/photodata/"+ season+"/"+fname + ".jpg" + "&autoLoad=true'></iframe>";
     popup.show(coordinate, html);
-  }
 };
 
 map.on('pointermove', function(evt) {
@@ -376,9 +368,14 @@ map.on('click', function(evt) {
                 video.get(0).currentTime = nearest_point(coordinate[0], coordinate[1]).sec;
             }
         }else if(layer.get("name") == "photo360"){
-            displayFeaturePhoto(evt.pixel,coordinate);
+            var fname = feature.get('name');
+            var ftime1 = feature.get('s201808');
+            var ftime2 = feature.get('s201810');
+            ftime = ftime2;
+            season = "201810";
+            displayFeaturePhoto(coordinate,fname,ftime,ftime1,ftime2,season);
         }else if(layer.get("name") == "3D"){
-            window.open('http://map.ecoris.info/oze/areaD_3d/areaD.html', '_blank');
+            window.open('http://map.ecoris.info/areaD_3d/areaD.html', '_blank');
         }
     });
 });
